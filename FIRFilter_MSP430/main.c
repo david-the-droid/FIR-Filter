@@ -42,7 +42,7 @@
 #define OUTPUT_LEN 200
 #define COEFFICIENT_LEN 10
 
-static double coefficients[10] =
+static float coefficients[10] =
 {
     0.0110631440768700,
     0.0313470712799202,
@@ -252,13 +252,6 @@ static double input_samples[INPUT_LEN] =
 };
 */
 
-
-/* Define macros for multiply */
-
-// use fixed point multiplication
-
-// 0000 0000 . 0000 0000 4 bytes - float
-
 const int scale = 8;
 const uint32_t ONE = 0x01;
 
@@ -270,25 +263,35 @@ const uint32_t ONE = 0x01;
 #define FIXEDMULTFIR(x, y) ((((x)>>3)*((y)>>1))>>4) // 6 2 working combo, 2 6 seems to give more accuracy
 
 static float sample_storage[200] = {0};
-static int index = 0;
+static int sample_index = 0;
 
 float calculate_filtered_value(float input_sample)
 {
     float sum = 0;
+    int fix_val_1 = 0;
+    int fix_val_2 = 0;
+    int mult_out = 0;
+    float result = 0;
     int fir_index = 0;
 
-    sample_storage[index] = input_sample;
+    sample_storage[sample_index] = input_sample;
 
     for (fir_index = 0; fir_index < COEFFICIENT_LEN; fir_index++)
     {
-        if (index-fir_index < 0) // prevents accessing undefined memory
+        if (sample_index-fir_index < 0) // prevents accessing undefined memory
         {
             break;
         }
-        sum = sum + (coefficients[fir_index] * sample_storage[index-fir_index]);
+        fix_val_1 = FLOATFIXED(sample_storage[sample_index-fir_index]);
+        fix_val_2 = FLOATFIXED(coefficients[fir_index]);
+        mult_out = FIXEDMULTFIR(fix_val_1, fix_val_2);
+        result = FIXEDFLOAT(mult_out);
+
+        sum = sum + result;
+        //sum = sum + (coefficients[fir_index] * sample_storage[index-fir_index]);
     }
 
-    index++;
+    sample_index++;
 
     return sum;
 }
@@ -298,27 +301,13 @@ int main() {
     float output_array[OUTPUT_LEN] = {0};
     int index;
 
-    int f1;
-    float f2;
-    float f3;
-    int f4;
-    int mult_out;
-
-    f1 = FLOATFIXED(5.7);
-    f2 = FIXEDFLOAT(f1);
-
-    f3 = f2;
-
-    f1 = FLOATFIXED(14.80832428);
-    f4 = FLOATFIXED(0.0110631440768700);
-    mult_out = FIXEDMULTFIR(f1, f4);
-
-    f3 = FIXEDFLOAT(mult_out);
-
     for(index = 0; index < INPUT_LEN; index++) // outer loop fine
     {
-        output_array[index] = f3; //calculate_filtered_value(input_samples[index]);
+        output_array[index] = calculate_filtered_value(input_samples[index]);
+        if (index == 61)
+        {
+            index = 200;
+        }
     }
-
     return 0;
 }
