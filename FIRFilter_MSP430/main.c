@@ -304,10 +304,6 @@ int main() {
     for(index = 0; index < INPUT_LEN; index++) // outer loop fine
     {
         output_array[index] = calculate_filtered_value(input_samples[index]);
-        if (index == 61)
-        {
-            index = 200;
-        }
     }
     return 0;
 }
