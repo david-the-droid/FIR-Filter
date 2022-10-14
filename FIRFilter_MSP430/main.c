@@ -257,11 +257,17 @@ static double input_samples[INPUT_LEN] =
 
 // use fixed point multiplication
 
-// 0000 0000 0000 0000 0000 0000 . 0000 0000 4 bytes - float
+// 0000 0000 . 0000 0000 4 bytes - float
 
 const int scale = 8;
-#define FLOATFIXED(A) ((A) * (float)(1<<scale))
-#define FIXEDFLOAT(A) ((float)(A) / (float)(1<<scale))
+const uint32_t ONE = 0x01;
+
+/* Fixed point arithmetic */
+
+#define FLOATFIXED(A) ((A) * (float)(ONE<<scale))
+#define FIXEDFLOAT(A) ((float)(A) / (float)(ONE<<scale))
+#define FIXEDMULT(x, y) ((((x)>>2)*((y)>>6))>>0) // 6 2 working combo, 2 6 seems to give more accuracy
+#define FIXEDMULTFIR(x, y) ((((x)>>3)*((y)>>1))>>4) // 6 2 working combo, 2 6 seems to give more accuracy
 
 static float sample_storage[200] = {0};
 static int index = 0;
@@ -287,27 +293,31 @@ float calculate_filtered_value(float input_sample)
     return sum;
 }
 
-
 int main() {
 
     float output_array[OUTPUT_LEN] = {0};
     int index;
 
-    /*
-    Future section for fixed point multiplication
     int f1;
     float f2;
     float f3;
+    int f4;
+    int mult_out;
 
     f1 = FLOATFIXED(5.7);
     f2 = FIXEDFLOAT(f1);
 
     f3 = f2;
-    */
+
+    f1 = FLOATFIXED(14.80832428);
+    f4 = FLOATFIXED(0.0110631440768700);
+    mult_out = FIXEDMULTFIR(f1, f4);
+
+    f3 = FIXEDFLOAT(mult_out);
 
     for(index = 0; index < INPUT_LEN; index++) // outer loop fine
     {
-        output_array[index] = calculate_filtered_value(input_samples[index]);
+        output_array[index] = f3; //calculate_filtered_value(input_samples[index]);
     }
 
     return 0;
