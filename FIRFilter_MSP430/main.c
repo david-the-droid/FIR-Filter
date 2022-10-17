@@ -1,43 +1,12 @@
-/* --COPYRIGHT--,BSD
- * Copyright (c) 2017, Texas Instruments Incorporated
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * --/COPYRIGHT--*/
-#include "driverlib.h"
 //******************************************************************************
 //!
-//!   Empty Project that includes driverlib
+//!   Example of using fixed point arithmetic in a FIR
 //!
 //******************************************************************************
+
 #include <stdio.h>
 #include <stdbool.h>
-
+#include "driverlib.h"
 #include "main.h"
 
 #define INPUT_LEN 61
@@ -262,43 +231,30 @@ const int scale = 8;
 const uint32_t ONE = 0x01;
 #define FLOATFIXED(A) ((A) * (float)(ONE<<scale))
 #define FIXEDFLOAT(A) ((float)(A) / (float)(ONE<<scale))
-#define FIXEDMULT(x, y) ((((x)>>2)*((y)>>6))>>0) // 6 2 working combo, 2 6 seems to give more accuracy
-#define FIXEDMULTFIR(x, y) ((((x)>>3)*((y)>>1))>>4) // 6 2 working combo, 2 6 seems to give more accuracy
-
-#define ENABLE_TEST_PIN_OUT             P2DIR = 0xFFU;
-#define TEST_PIN_OUT                    (0x80U)
-#define TEST_PIN_OUT_ON                 P2OUT |= TEST_PIN_OUT;
-#define TEST_PIN_OUT_OFF                P2OUT &=~TEST_PIN_OUT;
-#define TOGGLE_TEST_PIN_OUT             P2OUT ^= TEST_PIN_OUT;
-
-
+#define FIXEDMULT(x, y) ((((x)>>2)*((y)>>6))>>0)
+#define FIXEDMULTFIR(x, y) ((((x)>>3)*((y)>>1))>>4)
 
 int main() {
-    WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
+
     configure_device();
     run_test();
-
-    //P1OUT ^= BIT0;                      // Toggle P1.0 using exclusive-OR
-
-
     return 0;
 }
 
 static void run_test(void)
 {
-    // set GPIO
-    P1OUT ^= BIT0;
+    P1OUT ^= BIT0;  // toggle pin
+
     float output_array[OUTPUT_LEN] = {0};
     int index;
 
 
-    for(index = 0; index < INPUT_LEN; index++) // outer loop fine
+    for(index = 0; index < INPUT_LEN; index++)
     {
         output_array[index] = calculate_filtered_value(input_samples[index]);
     }
 
     P1OUT ^= BIT0;
-    // clear GPIO
 }
 
 float calculate_filtered_value(float input_sample)
@@ -336,8 +292,9 @@ float calculate_filtered_value(float input_sample)
 
 void configure_device(void)
 {
-    P1OUT &= ~BIT0;                         // Clear P1.0 output latch for a defined power-on state
-    P1DIR |= BIT0;                          // Set P1.0 to output direction
+    WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog
+    P1OUT &= ~BIT0;
+    P1DIR |= BIT0;
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 }
